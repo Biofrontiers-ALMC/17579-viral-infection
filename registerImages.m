@@ -1,6 +1,8 @@
 clearvars
 clc
 
+channelToRegister = 2;
+
 folders = dir('D:\Projects\ALMC Tickets\EmmaWS\data\20240912');
 folders(1:2) = [];
 

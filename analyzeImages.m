@@ -21,7 +21,7 @@ for iFile = 1:numel(files)
     LL = watershed(dd);
     mask(LL == 0) = 0;
 
-    imshowpair(Imask, bwperim(mask))
+    %imshowpair(Imask, bwperim(mask))
 
     %% Measure data
 
@@ -44,6 +44,6 @@ for iFile = 1:numel(files)
 
     %%
     [~, fn] = fileparts(files(iFile).name);
-    save([fn, '.mat'], 'storeData')
+    save([fn, '.mat'], 'storeData', 'mask')
 
 end
