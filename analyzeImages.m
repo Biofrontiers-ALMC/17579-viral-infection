@@ -27,23 +27,35 @@ for iFile = 1:numel(files)
 
     nImages = numel(imfinfo(files(iFile).name));
 
-    for ii = 1:nImages
+    for ch = 1:nImages
 
-        I = imread(files(iFile).name, ii);
+        I = imread(files(iFile).name, ch);
 
-        cellData = regionprops(mask, I, 'MeanIntensity');
+        cellData = regionprops(mask, I, 'MeanIntensity', 'PixelIdxList');
 
-        if ii == 1
-
-            storeData = nan(numel(cellData), nImages);
-
+        if ch == 1
+            meanIntensity = nan(numel(cellData), nImages);
+            hitOrMiss = false(numel(cellData), nImages);
         end
 
-        storeData(:, ii) = cat(1, cellData.MeanIntensity);
+        meanIntensity(:, ch) = cat(1, cellData.MeanIntensity);
+
+        threshold = mean(double(I), 'all') + std(double(I), 0, 'all');
+
+        
+        % if ismember(ch, [1 9 14])
+        %     threshold = 3500;
+        % else
+        %     threshold = 100;
+        % end
+
+        hitOrMiss(:, ch) = meanIntensity(:, ch) > threshold;
+        pixelIdxList = {cellData.PixelIdxList};
+
     end
 
     %%
     [~, fn] = fileparts(files(iFile).name);
-    save([fn, '.mat'], 'storeData', 'mask')
+    save([fn, '.mat'], 'meanIntensity', 'mask', 'hitOrMiss', 'pixelIdxList')
 
 end
