@@ -21,6 +21,8 @@ for iFile = 1:numel(files)
     LL = watershed(dd);
     mask(LL == 0) = 0;
 
+    mask = imclearborder(mask);
+
     %imshowpair(Imask, bwperim(mask))
 
     %% Measure data

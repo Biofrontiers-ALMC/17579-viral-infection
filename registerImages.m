@@ -63,6 +63,19 @@ for iF = 1:numel(files)
         end
     end
 
+    %% Crop the images to exclude the rotated region
+
+    minIP = min(registeredImageStack, [], 3);
+    minIP_hasdata = minIP > 0;
+
+    leftEdge = find( any(minIP_hasdata, 1), 1, 'first');
+    rightEdge = find( any(minIP_hasdata, 1), 1, 'last');
+
+    topEdge = find( any(minIP_hasdata, 2), 1, 'first');
+    bottomEdge = find( any(minIP_hasdata, 2), 1, 'last');
+
+    registeredImageStack = registeredImageStack(topEdge:bottomEdge, leftEdge:rightEdge, :);
+    
     %% Export the registered image stack
     [~, outputFN] = fileparts(fn);
 
