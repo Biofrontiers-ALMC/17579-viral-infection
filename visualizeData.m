@@ -1,8 +1,8 @@
 clearvars
 clc
-data_mock = load('D:\Projects\ALMC Tickets\EmmaWS\Processed\20241107\H3N2\mock_F10.mat');
-data_mock2 = load('D:\Projects\ALMC Tickets\EmmaWS\Processed\20241107\H3N2\mock_G6.mat')';
-data_well = load('D:\Projects\ALMC Tickets\EmmaWS\Processed\20241107\H3N2\well_2_C10.mat');
+data_mock = load('D:\Documents\OneDrive - UCB-O365\Shared\temp2\Processed\20241107\H3N2\mock_F10.mat');
+data_mock2 = load('D:\Documents\OneDrive - UCB-O365\Shared\temp2\Processed\20241107\H3N2\mock_G6.mat')';
+data_well = load('D:\Documents\OneDrive - UCB-O365\Shared\temp2\Processed\20241107\H3N2\well_2_C10.mat');
 
 %%
 figure(1);
