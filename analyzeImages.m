@@ -1,19 +1,39 @@
-clearvars
-clc
+function analyzeImages(dataDir, outputDir, varargin)
+%ANALYZEIMAGES  Analyze images to identify cells and measure intensity
+%
+%  ANALYZEIMAGES(DATADIR, OUTPUTDIR) will process all TIFF files in the
+%  specified DATADIR. It is assumed that each TIFF file is a stack, with
+%  each image corresponding to different fluorescent markers. 
+% 
+%  
 
-files = dir('*.tif');
+%Parse the inputs
+ip = inputParser;
+addParameter(ip, 'MaskImage', 1);
+parse(ip, varargin{:})
 
+files = dir(fullfile(dataDir, '*.tif'));
+
+if isempty(files)
+    error('analyzeImages:NoTIFFfiles', ...
+        'No .tif files were found in the directory %s.', dataDir);
+end
+
+if ~exist(outputDir)
+    mkdir(outputDir)
+end
+
+%Process the images
 for iFile = 1:numel(files)
 
-    maskImage = 1;
-
     %Mask the images
-    Imask = imread(files(iFile).name, maskImage);
+    Imask = imread(fullfile(dataDir, files(iFile).name), ip.Results.MaskImage);
     
     mask = imbinarize(Imask);
     mask = imopen(mask, strel('disk', 1));
 
-    dd = - bwdist(mask);
+    %Try to separate clusters of objects
+    dd = -bwdist(mask);
     dd = imhmin(dd, 1);
 
     dd(~mask) = -Inf;
@@ -27,11 +47,11 @@ for iFile = 1:numel(files)
 
     %% Measure data
 
-    nImages = numel(imfinfo(files(iFile).name));
+    nImages = numel(imfinfo(fullfile(dataDir, files(iFile).name)));
 
     for ch = 1:nImages
 
-        I = imread(files(iFile).name, ch);
+        I = imread(fullfile(dataDir, files(iFile).name), ch);
 
         cellData = regionprops(mask, I, 'MeanIntensity', 'PixelIdxList');
 
@@ -43,21 +63,14 @@ for iFile = 1:numel(files)
         meanIntensity(:, ch) = cat(1, cellData.MeanIntensity);
 
         threshold = mean(double(I), 'all') + std(double(I), 0, 'all');
-
-        
-        % if ismember(ch, [1 9 14])
-        %     threshold = 3500;
-        % else
-        %     threshold = 100;
-        % end
-
         hitOrMiss(:, ch) = meanIntensity(:, ch) > threshold;
+        
         pixelIdxList = {cellData.PixelIdxList};
 
     end
 
     %%
     [~, fn] = fileparts(files(iFile).name);
-    save([fn, '.mat'], 'meanIntensity', 'mask', 'hitOrMiss', 'pixelIdxList')
+    save(fullfile(outputDir, [fn, '.mat']), 'meanIntensity', 'mask', 'hitOrMiss', 'pixelIdxList')
 
 end

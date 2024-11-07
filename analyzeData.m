@@ -5,11 +5,11 @@ clc
 % thresholds = [3500, 500, 750, 100, 317, 369, 359, 40, 3200, 410, 165, 82, 500, ...
 %     2000, 246, 40];
 
-files = dir('*.mat');
+files = dir('D:\OneDrive - UCB-O365\Shared\Share with Sawyer Lab\Processed 20241009\*.mat');
 
 for ii = 1:numel(files)
 
-    data(ii) = load(files(ii).name);
+    data(ii) = load(fullfile(files(ii).folder, files(ii).name));
 
     [~, fn] = fileparts(files(ii).name);
 
@@ -18,7 +18,7 @@ for ii = 1:numel(files)
     end
 
     figure;
-    for jj = 1:12
+    for jj = 1:16
 
         maskHit = false(size(data(ii).mask));
         maskMiss = maskHit;
@@ -36,7 +36,7 @@ for ii = 1:numel(files)
         end
 
         % subplot(4, 3, jj)
-        I = imread([fn, '.tif'], jj);
+        I = imread(fullfile(files(ii).folder, [fn, '.tif']), jj);
         
         Iout = showoverlay(I, bwperim(maskHit), 'Color', [0, 1, 0]);
         Iout = showoverlay(Iout, bwperim(maskMiss), 'Color', [1, 0, 0]);
