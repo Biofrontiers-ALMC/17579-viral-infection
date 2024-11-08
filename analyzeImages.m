@@ -51,39 +51,46 @@ for iFile = 1:numel(files)
 
     nImages = numel(imfinfo(fullfile(dataDir, files(iFile).name)));
 
+    [~, fn] = fileparts(files(iFile).name);
+
     for ch = 1:nImages
 
         I = imread(fullfile(dataDir, files(iFile).name), ch);
-
         cellData = regionprops(mask, I, 'Centroid', 'MeanIntensity', 'PixelIdxList');
 
         if ch == 1
+            
             meanIntensity = nan(numel(cellData), nImages);
             hitOrMiss = false(numel(cellData), nImages);
+            pixelIdxList = {cellData.PixelIdxList};
         end
 
         meanIntensity(:, ch) = cat(1, cellData.MeanIntensity);
 
         %threshold = mean(double(I), 'all') + std(double(I), 0, 'all');
-        threshold = 1200;
+        threshold = 1000;
         hitOrMiss(:, ch) = meanIntensity(:, ch) > threshold;
         
-        pixelIdxList = {cellData.PixelIdxList};
+        %Make an output image showing the segmentation
+        Iout = imfuse(I, bwperim(mask));
+        Iout = imresize(Iout, 2);
+        for ii = 1:numel(cellData)
+            Iout = insertText(Iout, cellData(ii).Centroid *2, int2str(ii), 'BoxOpacity', 0, 'FontColor', 'white');
+        end
+
+        outputSubDir = fullfile(outputDir, fn);
+        if ~exist(outputSubDir, 'dir')
+            mkdir(outputSubDir)
+        end
+        imwrite(Iout, fullfile(outputSubDir, [fn, sprintf('img%02d_masked.tif', ch)]))
 
     end
 
     %%
-    [~, fn] = fileparts(files(iFile).name);
+    
     save(fullfile(outputDir, [fn, '.mat']), 'currFN', 'meanIntensity', 'mask', 'hitOrMiss', 'pixelIdxList')
 
-    %Make an output image showing the segmentation
-    Iout = imfuse(Imask, bwperim(mask));
-    Iout = imresize(Iout, 2);
-    for ii = 1:numel(cellData)
-        Iout = insertText(Iout, cellData(ii).Centroid *2, int2str(ii), 'BoxOpacity', 0, 'FontColor', 'white');
-    end
 
-    imwrite(Iout, fullfile(outputDir, [fn, '_masked.tif']))
     
 
 end
