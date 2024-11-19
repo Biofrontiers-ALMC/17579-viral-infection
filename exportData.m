@@ -22,14 +22,15 @@ for iRefs = 1:numel(refFiles)
     load(fullfile(inputDir, refFiles{iRefs}));
 
     if iRefs == 1
-        allCytoInt = meanCellIntensity;
+        allCytoInt = upperPrctileIntensity;
     else
-        allCytoInt = [allCytoInt; meanCellIntensity];
+        allCytoInt = [allCytoInt; upperPrctileIntensity];
     end
     
 end
 
-thresholds = mean(allCytoInt, 1) + 0.5 * std(allCytoInt, 1, 1);
+thresholds = mean(allCytoInt, 1) + 0.25 * std(allCytoInt, 1, 1);
+%thresholds = max(allCytoInt, 1);
 
 %Print a summary
 fidSummary = fopen(fullfile(outputDir, 'summary.csv'), 'w');
@@ -42,11 +43,10 @@ for iFile = 1:numel(files)
     load(file)
 
     %Determine if cell is positive or not
-    hitOrMiss = false(size(meanCellIntensity));
-    for iCol = 1:size(meanCellIntensity, 2)
-        hitOrMiss(:, iCol) = meanCellIntensity(:, iCol) > thresholds(iCol);
+    hitOrMiss = false(size(upperPrctileIntensity));
+    for iCol = 1:size(upperPrctileIntensity, 2)
+        hitOrMiss(:, iCol) = upperPrctileIntensity(:, iCol) > thresholds(iCol);
     end
-
 
 
     %Generate a csv file of the raw data
@@ -57,6 +57,9 @@ for iFile = 1:numel(files)
     %     'Segment 5, Segment 3, Segment 4,' + ...
     %     'Segment 5, Segment 6, Segment 7,' + ...
     %     'Segment 8, Segment 2\n');
+
+
+    %Maybe take the brightest of the duplicates in Seg5 and Seg2
 
     fprintf(fid, ['Cell ID, Segment 1, Segment 2, Segment 3, ', ...
         'Segment 4, Segment 5, Segment 6,', ...

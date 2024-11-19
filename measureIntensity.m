@@ -51,7 +51,7 @@ for iFile = 1:numel(files)
 %%
     Icell = imread(currFN, ip.Results.CellMaskImage);
     
-    cellMask = imbinarize(Icell);
+    cellMask = imbinarize(Icell, 'adaptive');
     cellMask = imopen(cellMask, strel('disk', 1));
 
     dd = -bwdist(~cellMask);
@@ -77,16 +77,22 @@ for iFile = 1:numel(files)
     for ch = 1:nImages
 
         I = imread(fullfile(dataDir, files(iFile).name), ch);
-        cellData = regionprops(cellMask, I, 'Centroid', 'MeanIntensity', 'PixelIdxList');
+        cellData = regionprops(cellMask, I, 'Centroid', 'MeanIntensity', 'PixelIdxList', 'PixelValues');
         % nuclData = regionprops(nuclMask, I, 'MeanIntensity');
         
         if ch == 1
             meanCellIntensity = nan(numel(cellData), nImages);
-            % meanNuclIntensity = nan(numel(cellData), nImages);
+            upperPrctileIntensity = nan(numel(cellData), nImages);
             pixelIdxList = {cellData.PixelIdxList};            
         end
 
         meanCellIntensity(:, ch) = cat(1, cellData.MeanIntensity);
+
+        for iCell = 1:numel(cellData)
+            %innerThreshold = prctile(cellData(iCell).PixelValues, 50, 'all');
+            %upperPrctileIntensity(iCell, ch) = mean(cellData(iCell).PixelValues(cellData(iCell).PixelValues > innerThreshold), "all");
+            upperPrctileIntensity(iCell, ch) = prctile(cellData(iCell).PixelValues, 95, 'all');
+        end
         % meanNuclIntensity(:, ch) = cat(1, nuclData.MeanIntensity);
 
         %Make an output image showing the segmentation
@@ -106,7 +112,7 @@ for iFile = 1:numel(files)
 
     %%
     
-    save(fullfile(outputDir, [fn, '.mat']), 'currFN', 'meanCellIntensity', 'cellMask', 'nuclMask', 'pixelIdxList')
+    save(fullfile(outputDir, [fn, '.mat']), 'currFN', 'meanCellIntensity', 'cellMask', 'nuclMask', 'pixelIdxList', 'upperPrctileIntensity')
 
 
     
