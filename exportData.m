@@ -29,7 +29,7 @@ for iRefs = 1:numel(refFiles)
     
 end
 
-thresholds = mean(allCytoInt, 1) + 0.25 * std(allCytoInt, 1, 1);
+thresholds = mean(allCytoInt, 1, 'omitnan') %+ 0.25 * std(allCytoInt, 1, 1, 'omitnan')
 %thresholds = max(allCytoInt, 1);
 
 %Print a summary

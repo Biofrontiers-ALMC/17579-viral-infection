@@ -12,6 +12,7 @@ function measureIntensity(dataDir, outputDir, varargin)
 ip = inputParser;
 addParameter(ip, 'NuclearImage', 1);
 addParameter(ip, 'CellMaskImage', 14);
+addParameter(ip, 'GridImages', [2, 5, 10, 13]);
 parse(ip, varargin{:})
 
 files = dir(fullfile(dataDir, '*.tif'));
@@ -77,7 +78,13 @@ for iFile = 1:numel(files)
     for ch = 1:nImages
 
         I = imread(fullfile(dataDir, files(iFile).name), ch);
-        cellData = regionprops(cellMask, I, 'Centroid', 'MeanIntensity', 'PixelIdxList', 'PixelValues');
+
+        %Normalize the image data to a similar range
+        meanI = mean(I, "all");
+        stdI = std(double(I), 0, 'all');
+        normI = (double(I) - meanI)/stdI;
+
+        cellData = regionprops(cellMask, normI, 'Centroid', 'MeanIntensity', 'PixelIdxList', 'PixelValues');
         % nuclData = regionprops(nuclMask, I, 'MeanIntensity');
         
         if ch == 1
@@ -91,7 +98,28 @@ for iFile = 1:numel(files)
         for iCell = 1:numel(cellData)
             %innerThreshold = prctile(cellData(iCell).PixelValues, 50, 'all');
             %upperPrctileIntensity(iCell, ch) = mean(cellData(iCell).PixelValues(cellData(iCell).PixelValues > innerThreshold), "all");
-            upperPrctileIntensity(iCell, ch) = prctile(cellData(iCell).PixelValues, 95, 'all');
+            %upperPrctileIntensity(iCell, ch) = prctile(cellData(iCell).PixelValues, 95, 'all');
+            % th = otsuthresh(I(cellData(iCell).PixelIdxList));
+            % th = th * max(I(cellData(iCell).PixelIdxList));
+
+            %Measure the local background?
+            cm = false(size(I));
+            cm(cellData(iCell).PixelIdxList) = true;
+            
+            bgm = imdilate(cm, strel('disk', 10));
+            bgm(cellMask) = false;
+            th = mean(normI(bgm), 'all') + 1.8 * std(double(normI(bgm)), 1, 'all');
+
+            upperPrctileIntensity(iCell, ch) = mean(cellData(iCell).PixelValues(cellData(iCell).PixelValues > th), "all");
+
+            % if iCell == 60            
+            %     Iout = imfuse(I, bwperim(cm));
+            % 
+            %     cm(normI < th) = false;
+            %     Iout = imfuse(Iout, bwperim(cm));
+            %     imshow(Iout)
+            %     keyboard
+            % end
         end
         % meanNuclIntensity(:, ch) = cat(1, nuclData.MeanIntensity);
 
