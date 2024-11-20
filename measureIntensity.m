@@ -12,7 +12,6 @@ function measureIntensity(dataDir, outputDir, varargin)
 ip = inputParser;
 addParameter(ip, 'NuclearImage', 1);
 addParameter(ip, 'CellMaskImage', 14);
-addParameter(ip, 'GridImages', [2, 5, 10, 13]);
 parse(ip, varargin{:})
 
 files = dir(fullfile(dataDir, '*.tif'));
@@ -48,7 +47,6 @@ for iFile = 1:numel(files)
 
     nuclMask = imclearborder(nuclMask);
 
-    % imshow(nuclMask)
 %%
     Icell = imread(currFN, ip.Results.CellMaskImage);
     
@@ -65,10 +63,6 @@ for iFile = 1:numel(files)
     cellMask = imclearborder(cellMask);
     cellMask = bwareaopen(cellMask, 30);
 
-    % imshowpair(nuclMask, cellMask)
-
-    %imshowpair(Imask, bwperim(mask))
-
     %% Measure data
 
     nImages = numel(imfinfo(fullfile(dataDir, files(iFile).name)));
@@ -78,50 +72,68 @@ for iFile = 1:numel(files)
     for ch = 1:nImages
 
         I = imread(fullfile(dataDir, files(iFile).name), ch);
+        
+        currData = regionprops(cellMask, I, 'Centroid', 'PixelIdxList');
+
+        if ch == 1
+
+            %Initialize a struct for storage
+            cellData = currData;
+
+            for iCell = 1:numel(currData)
+                cellData(iCell).RawPixelValues = cell(nImages, 1);
+                cellData(iCell).RawMeanIntensity = zeros(nImages, 1);
+                cellData(iCell).RawMaxIntensity = zeros(nImages, 1);
+                cellData(iCell).NormPixelValues = cell(nImages, 1);
+                cellData(iCell).NormMeanIntensity = zeros(nImages, 1);
+                cellData(iCell).NormMaxIntensity = zeros(nImages, 1);
+            end
+
+        end
+
+        %Background subtract image
+        Iclean = imtophat(I, strel('disk', 30));
+        Iclean = medfilt2(Iclean, [3, 3]);
+
+        % imshow(Iclean,  [])
+        % keyboard
 
         %Normalize the image data to a similar range
-        meanI = mean(I, "all");
-        stdI = std(double(I), 0, 'all');
-        normI = (double(I) - meanI)/stdI;
+        meanI = mean(Iclean, "all");
+        stdI = std(double(Iclean), 0, 'all');
+        normI = (double(Iclean) - meanI)/stdI;
 
-        cellData = regionprops(cellMask, normI, 'Centroid', 'MeanIntensity', 'PixelIdxList', 'PixelValues');
-        % nuclData = regionprops(nuclMask, I, 'MeanIntensity');
-        
-        if ch == 1
-            meanCellIntensity = nan(numel(cellData), nImages);
-            upperPrctileIntensity = nan(numel(cellData), nImages);
-            pixelIdxList = {cellData.PixelIdxList};            
+        %Measure all cell data
+        for iCell = 1:numel(currData)
+
+            cellData(iCell).RawPixelValues{ch} = I(cellData(iCell).PixelIdxList);
+            cellData(iCell).RawMeanIntensity(ch) = mean(I(cellData(iCell).PixelIdxList), 'all');
+            cellData(iCell).RawMaxIntensity(ch) = max(I(cellData(iCell).PixelIdxList), [], 'all');
+
+            cellData(iCell).NormPixelValues{ch} = normI(cellData(iCell).PixelIdxList);
+            cellData(iCell).NormMeanIntensity(ch) = mean(normI(cellData(iCell).PixelIdxList), 'all');
+            cellData(iCell).NormMaxIntensity(ch) = max(normI(cellData(iCell).PixelIdxList), [], 'all');
+
         end
 
-        meanCellIntensity(:, ch) = cat(1, cellData.MeanIntensity);
-
-        for iCell = 1:numel(cellData)
-            %innerThreshold = prctile(cellData(iCell).PixelValues, 50, 'all');
-            %upperPrctileIntensity(iCell, ch) = mean(cellData(iCell).PixelValues(cellData(iCell).PixelValues > innerThreshold), "all");
-            %upperPrctileIntensity(iCell, ch) = prctile(cellData(iCell).PixelValues, 95, 'all');
-            % th = otsuthresh(I(cellData(iCell).PixelIdxList));
-            % th = th * max(I(cellData(iCell).PixelIdxList));
-
-            %Measure the local background?
-            cm = false(size(I));
-            cm(cellData(iCell).PixelIdxList) = true;
-            
-            bgm = imdilate(cm, strel('disk', 10));
-            bgm(cellMask) = false;
-            th = mean(normI(bgm), 'all') + 1.8 * std(double(normI(bgm)), 1, 'all');
-
-            upperPrctileIntensity(iCell, ch) = mean(cellData(iCell).PixelValues(cellData(iCell).PixelValues > th), "all");
-
-            % if iCell == 60            
-            %     Iout = imfuse(I, bwperim(cm));
-            % 
-            %     cm(normI < th) = false;
-            %     Iout = imfuse(Iout, bwperim(cm));
-            %     imshow(Iout)
-            %     keyboard
-            % end
-        end
-        % meanNuclIntensity(:, ch) = cat(1, nuclData.MeanIntensity);
+        % for iCell = 1:numel(cellData)
+        %     %innerThreshold = prctile(cellData(iCell).PixelValues, 50, 'all');
+        %     %upperPrctileIntensity(iCell, ch) = mean(cellData(iCell).PixelValues(cellData(iCell).PixelValues > innerThreshold), "all");
+        %     %upperPrctileIntensity(iCell, ch) = prctile(cellData(iCell).PixelValues, 95, 'all');
+        %     % th = otsuthresh(I(cellData(iCell).PixelIdxList));
+        %     % th = th * max(I(cellData(iCell).PixelIdxList));
+        % 
+        %     %Measure the local background?
+        %     cm = false(size(I));
+        %     cm(cellData(iCell).PixelIdxList) = true;
+        % 
+        %     bgm = imdilate(cm, strel('disk', 10));
+        %     bgm(cellMask) = false;
+        %     th = mean(normI(bgm), 'all') + 1.8 * std(double(normI(bgm)), 1, 'all');
+        % 
+        %     upperPrctileIntensity(iCell, ch) = mean(cellData(iCell).PixelValues(cellData(iCell).PixelValues > th), "all");
+        % 
+        % end        
 
         %Make an output image showing the segmentation
         Iout = imfuse(I, bwperim(cellMask));
@@ -140,7 +152,7 @@ for iFile = 1:numel(files)
 
     %%
     
-    save(fullfile(outputDir, [fn, '.mat']), 'currFN', 'meanCellIntensity', 'cellMask', 'nuclMask', 'pixelIdxList', 'upperPrctileIntensity')
+    save(fullfile(outputDir, [fn, '.mat']), 'currFN', 'cellData')
 
 
     
