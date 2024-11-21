@@ -94,14 +94,22 @@ for iFile = 1:numel(files)
         %Background subtract image
         Iclean = imtophat(I, strel('disk', 30));
         Iclean = medfilt2(Iclean, [3, 3]);
+        Iclean = double(Iclean);
+
+        %Calculate the background mean and use this as the threshold
+        bgMean = mean(Iclean(~cellMask), 'all');
+        bgStd = std(Iclean(~cellMask), 0, 'all');
+
+        th = bgMean + bgStd;
+
 
         % imshow(Iclean,  [])
         % keyboard
 
-        %Normalize the image data to a similar range
-        meanI = mean(Iclean, "all");
-        stdI = std(double(Iclean), 0, 'all');
-        normI = (double(Iclean) - meanI)/stdI;
+        % %Normalize the image data to a similar range
+        % meanI = mean(Iclean, "all");
+        % stdI = std(double(Iclean), 0, 'all');
+        % normI = (double(Iclean) - meanI)/stdI;
 
         %Measure all cell data
         for iCell = 1:numel(currData)
@@ -110,9 +118,14 @@ for iFile = 1:numel(files)
             cellData(iCell).RawMeanIntensity(ch) = mean(I(cellData(iCell).PixelIdxList), 'all');
             cellData(iCell).RawMaxIntensity(ch) = max(I(cellData(iCell).PixelIdxList), [], 'all');
 
-            cellData(iCell).NormPixelValues{ch} = normI(cellData(iCell).PixelIdxList);
-            cellData(iCell).NormMeanIntensity(ch) = mean(normI(cellData(iCell).PixelIdxList), 'all');
-            cellData(iCell).NormMaxIntensity(ch) = max(normI(cellData(iCell).PixelIdxList), [], 'all');
+            %Find any pixels which are greater than the background
+            %threshold
+            cellData(iCell).positivePixels{ch} = cellData(iCell).PixelIdxList(cellData(iCell).RawPixelValues{ch} > th);
+            cellData(iCell).isPositive = numel(cellData(iCell).positivePixels{ch}) > 1;
+
+            % cellData(iCell).NormPixelValues{ch} = normI(cellData(iCell).PixelIdxList);
+            % cellData(iCell).NormMeanIntensity(ch) = mean(normI(cellData(iCell).PixelIdxList), 'all');
+            % cellData(iCell).NormMaxIntensity(ch) = max(normI(cellData(iCell).PixelIdxList), [], 'all');
 
         end
 
